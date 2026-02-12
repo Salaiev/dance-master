@@ -1,0 +1,14 @@
+{
+  "name": "dance-master",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "dev": "concurrently \"npm --prefix client/ssu-social-frontend start\" \"npm --prefix server/ssu-social-next/ssu-app run dev\"",
+    "dev:client": "npm --prefix client/ssu-social-frontend start",
+    "dev:server": "npm --prefix server/ssu-social-next/ssu-app run dev",
+    "install:all": "npm install --prefix client/ssu-social-frontend && npm install --prefix server/ssu-social-next/ssu-app"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}
