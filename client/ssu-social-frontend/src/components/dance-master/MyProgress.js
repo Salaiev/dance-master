@@ -1,6 +1,9 @@
 // src/components/dance-master/MyProgress.jsx
 import React, { useEffect, useMemo, useState } from "react";
 
+const BASE =
+  process.env.REACT_APP_BACKEND_SERVER_URI || "http://localhost:3000/api";
+
 function formatMinutes(seconds) {
   const mins = Math.ceil((Number(seconds) || 0) / 60);
   return `${mins} min`;
@@ -30,7 +33,6 @@ export default function MyProgress() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // same style as your project
   const userId =
     localStorage.getItem("userId") ||
     localStorage.getItem("user_id") ||
@@ -50,26 +52,34 @@ export default function MyProgress() {
         setLoading(true);
         setError("");
 
-        const [summaryRes, progressRes, reportsRes] = await Promise.all([
-          fetch(`/api/progress/summary?user_id=${userId}`),
-          fetch(`/api/progress?user_id=${userId}`),
-          fetch(`/api/reports?user_id=${userId}`),
-        ]);
-
-        const [summaryData, progressData, reportsData] = await Promise.all([
-          summaryRes.json(),
-          progressRes.json(),
-          reportsRes.json(),
+        const [summaryRes, progressRes] = await Promise.all([
+          fetch(`${BASE}/progress/summary?user_id=${userId}`),
+          fetch(`${BASE}/progress?user_id=${userId}`),
         ]);
 
         if (!summaryRes.ok) {
-          throw new Error(summaryData.error || "Failed to load summary.");
+          const errData = await summaryRes.json().catch(() => ({}));
+          throw new Error(errData.error || "Failed to load summary.");
         }
         if (!progressRes.ok) {
-          throw new Error(progressData.error || "Failed to load progress.");
+          const errData = await progressRes.json().catch(() => ({}));
+          throw new Error(errData.error || "Failed to load progress.");
         }
-        if (!reportsRes.ok) {
-          throw new Error(reportsData.error || "Failed to load reports.");
+
+        const [summaryData, progressData] = await Promise.all([
+          summaryRes.json(),
+          progressRes.json(),
+        ]);
+
+        // Reports is optional — don't crash if route doesn't exist yet
+        let reportsData = { reports: [] };
+        try {
+          const reportsRes = await fetch(`${BASE}/reports?user_id=${userId}`);
+          if (reportsRes.ok) {
+            reportsData = await reportsRes.json();
+          }
+        } catch {
+          // reports route not available yet
         }
 
         if (!ignore) {
