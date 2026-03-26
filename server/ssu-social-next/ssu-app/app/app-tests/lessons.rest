@@ -1,0 +1,17 @@
+### List all lessons
+GET http://localhost:3000/api/lessons
+
+### Filter by style
+GET http://localhost:3000/api/lessons?style=HIPHOP
+
+### Filter by difficulty
+GET http://localhost:3000/api/lessons?difficulty=BEGINNER
+
+### Filter by both
+GET http://localhost:3000/api/lessons?style=HIPHOP&difficulty=BEGINNER
+
+### Get one lesson by id (replace with a real UUID from your DB)
+GET http://localhost:3000/api/lessons/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa
+
+### Try invalid id (should return 404)
+GET http://localhost:3000/api/lessons/00000000-0000-0000-0000-000000000000

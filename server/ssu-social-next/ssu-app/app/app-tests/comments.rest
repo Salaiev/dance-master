@@ -1,0 +1,78 @@
+### =========================
+### Base
+### =========================
+@baseUrl = http://localhost:3000/api
+@lessonId = 49fa8333-ddf9-4c9b-a1d6-fc91d3956358
+@userId = 06d41420-d7d6-4b49-a1c6-57fb9aab0900
+
+@commentId = d83d6b65-f971-4f6e-a3d6-35e197366f8c
+@replyId = d83d6b65-f971-4f6e-a3d6-35e197366f8c
+
+### =========================
+### 1) GET comments for lesson
+### =========================
+GET {{baseUrl}}/comments?lesson_id={{lessonId}}
+Accept: application/json
+
+### =========================
+### 2) POST new top-level comment
+### Expected: 201 { comment: { comment_id, ... } }
+### Copy comment_id into @commentId above
+### =========================
+POST {{baseUrl}}/comments
+Content-Type: application/json
+
+{
+  "lesson_id": "{{lessonId}}",
+  "user_id": "{{userId}}",
+  "content": "Great lesson!"
+}
+
+### =========================
+### 3) POST reply to a comment
+### Expected: 201
+### Copy returned comment_id into @replyId above
+### =========================
+POST {{baseUrl}}/comments
+Content-Type: application/json
+
+{
+  "lesson_id": "{{lessonId}}",
+  "user_id": "{{userId}}",
+  "content": "Thanks! This helped me a lot.",
+  "reply_id": "{{commentId}}"
+}
+
+### =========================
+### 4) PATCH update a comment
+### Expected: 200
+### =========================
+PATCH {{baseUrl}}/comments/{{commentId}}
+Content-Type: application/json
+
+{
+  "user_id": "{{userId}}",
+  "content": "Updated: Great lesson!!"
+}
+
+### =========================
+### 5) DELETE a reply (optional)
+### Expected: 200
+### =========================
+DELETE {{baseUrl}}/comments/{{replyId}}
+Content-Type: application/json
+
+{
+  "user_id": "{{userId}}"
+}
+
+### =========================
+### 6) DELETE a top-level comment
+### Expected: 200
+### =========================
+DELETE {{baseUrl}}/comments/{{commentId}}
+Content-Type: application/json
+
+{
+  "user_id": "{{userId}}"
+}

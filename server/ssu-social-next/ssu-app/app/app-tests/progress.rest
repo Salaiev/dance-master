@@ -1,0 +1,76 @@
+### Get all progress for user
+GET http://localhost:3000/api/progress?user_id=aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa
+
+
+### Get progress for specific lesson
+GET http://localhost:3000/api/progress/bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb?user_id=aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa
+
+
+### Try lesson progress with invalid lesson id (should return 404)
+GET http://localhost:3000/api/progress/00000000-0000-0000-0000-000000000000?user_id=aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa
+
+
+### Update progress (start lesson or update position/time)
+POST http://localhost:3000/api/progress/update
+Content-Type: application/json
+
+{
+  "user_id": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+  "lesson_id": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+  "last_position_sec": 120,
+  "time_spent_sec": 30,
+  "video_completed": false,
+  "instructions_completed": false
+}
+
+
+### Update progress again (simulate more watch time)
+POST http://localhost:3000/api/progress/update
+Content-Type: application/json
+
+{
+  "user_id": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+  "lesson_id": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+  "last_position_sec": 300,
+  "time_spent_sec": 45,
+  "video_completed": true,
+  "instructions_completed": false
+}
+
+
+### Update instructions completion
+POST http://localhost:3000/api/progress/update
+Content-Type: application/json
+
+{
+  "user_id": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+  "lesson_id": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+  "time_spent_sec": 20,
+  "video_completed": true,
+  "instructions_completed": true
+}
+
+
+### Complete lesson (creates report)
+POST http://localhost:3000/api/progress/complete
+Content-Type: application/json
+
+{
+  "user_id": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+  "lesson_id": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+  "self_rating": 4
+}
+
+
+### Try completing lesson without required progress (should fail)
+POST http://localhost:3000/api/progress/complete
+Content-Type: application/json
+
+{
+  "user_id": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+  "lesson_id": "cccccccc-cccc-cccc-cccc-cccccccccccc"
+}
+
+
+### Get progress summary (for My Progress page)
+GET http://localhost:3000/api/progress/summary?user_id=aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa

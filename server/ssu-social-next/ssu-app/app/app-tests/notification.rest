@@ -1,0 +1,57 @@
+
+############################################
+# TEST CORS (OPTIONS)
+############################################
+OPTIONS http://localhost:3000/api/notification
+Content-Type: application/json
+
+
+############################################
+# CREATE NOTIFICATION (POST)
+# ✔ MUST work BEFORE any other tests
+############################################
+POST http://localhost:3000/api/notification
+Content-Type: application/json
+
+{
+  "notification_type": "comment",
+  "user_id": "00f4185d-3b42-46be-a0f4-31ec05432664",
+  "action_user_id": "ba3ec3af-97f2-4ec2-9b8f-c0bccc6cebb3",
+  "content": "Test notification from REST client",
+  "post_id": null
+}
+
+
+############################################
+# GET NOTIFICATIONS BY USERNAME (GET)
+# ✔ FE uses this endpoint
+############################################
+GET http://localhost:3000/api/notification?username=ksalaiev
+Accept: application/json
+
+
+############################################
+# UPDATE NOTIFICATION (PUT)
+# ✔ Mark read OR change text
+############################################
+PUT http://localhost:3000/api/notification
+Content-Type: application/json
+
+{
+  "id": "994c2cfe-a95a-497b-a686-37129ce15f70",
+  "isRead": true
+}
+
+
+############################################
+# DELETE NOTIFICATION (DELETE)
+############################################
+DELETE http://localhost:3000/api/notification
+Content-Type: application/json
+
+{
+  "id": "6c6c4dc0-de53-48d3-a119-0688b697da30"
+}
+
+
+
