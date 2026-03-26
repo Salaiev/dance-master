@@ -16,13 +16,20 @@ function requireUserId() {
   return userId;
 }
 
+function buildUrl(path) {
+  if (!BASE) {
+    throw new Error("REACT_APP_BACKEND_SERVER_URI is not set.");
+  }
+  return `${BASE}${path}`;
+}
+
 async function request(path, options = {}) {
   const headers = {
     ...(options.body ? { "Content-Type": "application/json" } : {}),
     ...(options.headers || {}),
   };
 
-  const res = await fetch(`${BASE}${path}`, {
+  const res = await fetch(buildUrl(path), {
     ...options,
     headers,
   });
@@ -44,7 +51,9 @@ export const getLesson = (id) => request(`/lessons/${id}`);
 export const getNotes = (lessonId) => {
   const userId = requireUserId();
   return request(
-    `/notes?lessonId=${encodeURIComponent(lessonId)}&user_id=${encodeURIComponent(userId)}`
+    `/notes?lessonId=${encodeURIComponent(
+      lessonId
+    )}&user_id=${encodeURIComponent(userId)}`
   );
 };
 
@@ -92,7 +101,7 @@ export const getComments = (lessonId) =>
 
 export const addComment = (lessonId, content) => {
   const userId = requireUserId();
-  return request(`/comments`, {
+  return request("/comments", {
     method: "POST",
     body: JSON.stringify({
       lesson_id: lessonId,
@@ -104,7 +113,7 @@ export const addComment = (lessonId, content) => {
 
 export const replyComment = (lessonId, replyId, content) => {
   const userId = requireUserId();
-  return request(`/comments`, {
+  return request("/comments", {
     method: "POST",
     body: JSON.stringify({
       lesson_id: lessonId,

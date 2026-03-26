@@ -3,6 +3,8 @@ import { corsHeaders } from "@/utilities/cors";
 import sql from "@/utilities/db";
 
 export async function OPTIONS() {
+  console.log(" OPTIONS /api/notes/[id] HIT");
+
   return new NextResponse(null, {
     status: 204,
     headers: corsHeaders,
