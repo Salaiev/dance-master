@@ -1,0 +1,11 @@
+### Get challenges data
+GET http://localhost:3000/api/challenges?user_id=aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa
+
+
+### Check & award badges/XP/streak
+POST http://localhost:3000/api/challenges/check
+Content-Type: application/json
+
+{
+  "user_id": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+}

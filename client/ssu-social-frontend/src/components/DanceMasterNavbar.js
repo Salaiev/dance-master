@@ -29,9 +29,9 @@ export default function DanceMasterNavbar() {
     <div style={{ borderBottom: "1px solid #e5e7eb", background: "#fff" }}>
       <div
         style={{
-          maxWidth: 1200,
+          maxWidth: 1440,
           margin: "0 auto",
-          padding: "14px 18px",
+          padding: "14px 24px",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
@@ -54,6 +54,10 @@ export default function DanceMasterNavbar() {
 
             <NavLink to="/dance-master/progress" style={linkStyle}>
               My Progress
+            </NavLink>
+
+            <NavLink to="/dance-master/challenges" style={linkStyle}>
+              Challenges
             </NavLink>
 
             <NavLink to="/dance-master/lessons" style={linkStyle}>

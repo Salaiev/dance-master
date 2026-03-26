@@ -42,6 +42,7 @@ import LessonView from "./components/dance-master/lessons/LessonView";
 import AdminLessonCreate from "./components/dance-master/lessons/AdminLessonCreate";
 import AdminLessonEdit from "./components/dance-master/lessons/AdminLessonEdit";
 import MyProgress from "./components/dance-master/MyProgress";
+import Challenges from "./components/dance-master/Challenges";
 
 // layout that mounts DanceMasterNavbar + <Outlet />
 import DanceMasterLayout from "./components/dance-master/DanceMasterLayout";
@@ -90,6 +91,7 @@ const App = () => {
                   <Route path="lessons" element={<LessonsList />} />
                   <Route path="lessons/:id" element={<LessonView />} />
                   <Route path="progress" element={<MyProgress />} />
+                  <Route path="challenges" element={<Challenges />} />
                   <Route path="admin/lessons/new" element={<AdminLessonCreate />} />
                   <Route path="admin/lessons/:id/edit" element={<AdminLessonEdit />} />
                 </Route>

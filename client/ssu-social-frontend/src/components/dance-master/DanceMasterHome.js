@@ -31,6 +31,14 @@ function getGreeting() {
   return "Good evening";
 }
 
+function getUserId() {
+  return (
+    localStorage.getItem("userId") ||
+    localStorage.getItem("user_id") ||
+    ""
+  );
+}
+
 /* ─── style constants ─────────────────────────────────────── */
 const PURPLE = "#7c3aed";
 const PURPLE_LIGHT = "#ede9fe";
@@ -241,6 +249,7 @@ export default function DanceMasterHome() {
   const [recentNotes, setRecentNotes] = useState([]);
   const [summary, setSummary] = useState(null);
   const [recentCompleted, setRecentCompleted] = useState([]);
+  const [challengeData, setChallengeData] = useState(null);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -251,10 +260,7 @@ export default function DanceMasterHome() {
       setLoading(true);
 
       try {
-        const userId =
-          localStorage.getItem("userId") ||
-          localStorage.getItem("user_id") ||
-          "";
+        const userId = getUserId();
 
         const lessonRes = await getLessons();
         const lessonItems = lessonRes.items || lessonRes || [];
@@ -285,15 +291,11 @@ export default function DanceMasterHome() {
         setRecentNotes(flatNotes);
 
         if (userId) {
+          // Load progress summary
           try {
             const summaryRes = await fetch(`${BASE}/progress/summary?user_id=${userId}`);
-
             if (!summaryRes.ok) {
-              console.warn("Progress summary unavailable:", summaryRes.status);
-              if (mounted) {
-                setSummary(null);
-                setRecentCompleted([]);
-              }
+              if (mounted) { setSummary(null); setRecentCompleted([]); }
             } else {
               const summaryData = await summaryRes.json();
               if (!mounted) return;
@@ -301,11 +303,18 @@ export default function DanceMasterHome() {
               setRecentCompleted(summaryData.recent_completed || []);
             }
           } catch {
-            // Progress summary route not available — degrade gracefully
-            if (mounted) {
-              setSummary(null);
-              setRecentCompleted([]);
+            if (mounted) { setSummary(null); setRecentCompleted([]); }
+          }
+
+          // Load challenges summary
+          try {
+            const chRes = await fetch(`${BASE}/challenges?user_id=${userId}`);
+            if (chRes.ok) {
+              const chData = await chRes.json();
+              if (mounted) setChallengeData(chData);
             }
+          } catch {
+            // Challenges not available yet
           }
         } else {
           if (mounted) {
@@ -363,7 +372,6 @@ export default function DanceMasterHome() {
             overflow: "hidden",
           }}
         >
-          {/* decorative circles */}
           <div style={{
             position: "absolute", top: -40, right: -40,
             width: 180, height: 180, borderRadius: "50%",
@@ -425,12 +433,10 @@ export default function DanceMasterHome() {
               onClick={() => navigate("/dance-master/lessons")} accent={PURPLE_LIGHT} />
             <QuickCard icon="📈" title="My Progress" desc="Track your learning journey"
               onClick={() => navigate("/dance-master/progress")} accent="#d1fae5" />
+            <QuickCard icon="🏆" title="Challenges" desc="Earn badges & level up"
+              onClick={() => navigate("/dance-master/challenges")} accent="#fef3c7" />
             <QuickCard icon="📝" title="Notes" desc="Review your lesson notes"
               onClick={() => navigate("/dance-master/lessons")} accent={BLUE_LIGHT} />
-            {recentCompleted.length > 0 && (
-              <QuickCard icon="🏆" title="Last Completed" desc={recentCompleted[0]?.title || "View achievement"}
-                onClick={() => navigate("/dance-master/progress")} accent="#fef3c7" />
-            )}
           </div>
         </div>
 
@@ -517,8 +523,105 @@ export default function DanceMasterHome() {
           {/* Right column */}
           <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
 
-            {/* Recent Notes */}
+            {/* Challenges & XP Summary */}
             <div className="dm-card dm-fadein dm-fadein-3" style={{ padding: 20 }}>
+              <h2 style={{ fontFamily: FONT_HEADING, fontSize: 18, fontWeight: 400, color: TEXT, margin: "0 0 14px" }}>
+                🏆 Challenges & XP
+              </h2>
+
+              {!challengeData ? (
+                <div style={{ color: MUTED, fontSize: 14, textAlign: "center", padding: "20px 0" }}>
+                  {loading ? "Loading…" : "Start practicing to earn XP!"}
+                </div>
+              ) : (
+                <div>
+                  {/* Level & XP */}
+                  <div style={{
+                    background: "#111827", borderRadius: 12,
+                    padding: "14px 16px", marginBottom: 12, color: "#fff",
+                  }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                      <span style={{ fontWeight: 700, fontSize: 14 }}>
+                        LVL {challengeData.xp?.level || 1}
+                      </span>
+                      <span style={{ fontSize: 12, opacity: 0.7 }}>
+                        {challengeData.xp?.total_xp || 0} XP
+                      </span>
+                    </div>
+                    <div style={{
+                      height: 8, background: "rgba(255,255,255,0.15)",
+                      borderRadius: 999, overflow: "hidden",
+                    }}>
+                      <div style={{
+                        height: "100%", borderRadius: 999,
+                        width: `${challengeData.xp?.progress || 0}%`,
+                        background: "linear-gradient(90deg, #fbbf24, #f59e0b)",
+                        transition: "width 0.4s ease",
+                      }} />
+                    </div>
+                  </div>
+
+                  {/* Streak & Badges mini stats */}
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 }}>
+                    <div style={{
+                      background: BG, borderRadius: 10, padding: "10px 12px", textAlign: "center",
+                    }}>
+                      <div style={{ fontSize: 20 }}>
+                        {(challengeData.xp?.current_streak || 0) > 0 ? "🔥" : "❄️"}
+                      </div>
+                      <div style={{ fontWeight: 700, fontSize: 18, color: TEXT }}>
+                        {challengeData.xp?.current_streak || 0}
+                      </div>
+                      <div style={{ fontSize: 10, color: MUTED, textTransform: "uppercase" }}>Streak</div>
+                    </div>
+                    <div style={{
+                      background: BG, borderRadius: 10, padding: "10px 12px", textAlign: "center",
+                    }}>
+                      <div style={{ fontSize: 20 }}>🏅</div>
+                      <div style={{ fontWeight: 700, fontSize: 18, color: TEXT }}>
+                        {challengeData.badges?.filter((b) => b.is_earned).length || 0}
+                      </div>
+                      <div style={{ fontSize: 10, color: MUTED, textTransform: "uppercase" }}>Badges</div>
+                    </div>
+                  </div>
+
+                  {/* Weekly challenges preview */}
+                  {challengeData.weekly_challenges?.length > 0 && (
+                    <div style={{ marginBottom: 12 }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: MUTED, textTransform: "uppercase", marginBottom: 8 }}>
+                        This Week
+                      </div>
+                      {challengeData.weekly_challenges.slice(0, 2).map((ch) => (
+                        <div key={ch.challenge_id} style={{
+                          display: "flex", alignItems: "center", gap: 8,
+                          padding: "6px 0", fontSize: 13,
+                        }}>
+                          <span>{ch.is_completed ? "✅" : ch.icon}</span>
+                          <span style={{
+                            flex: 1, color: TEXT, fontWeight: 600,
+                            textDecoration: ch.is_completed ? "line-through" : "none",
+                            opacity: ch.is_completed ? 0.6 : 1,
+                          }}>
+                            {ch.title}
+                          </span>
+                          <span style={{ fontSize: 11, color: MUTED, fontWeight: 700 }}>
+                            {ch.current_value}/{ch.target_value}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <button className="dm-btn dm-btn-outline" style={{ marginTop: 4, fontSize: 13 }}
+                onClick={() => navigate("/dance-master/challenges")}>
+                View All Challenges
+              </button>
+            </div>
+
+            {/* Recent Notes */}
+            <div className="dm-card dm-fadein dm-fadein-4" style={{ padding: 20 }}>
               <h2 style={{ fontFamily: FONT_HEADING, fontSize: 18, fontWeight: 400, color: TEXT, margin: "0 0 14px" }}>
                 📝 Recent Notes
               </h2>
