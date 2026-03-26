@@ -60,7 +60,7 @@ export default function DanceMasterNavbar() {
               Challenges
             </NavLink>
 
-            <NavLink to="/dance-master/lessons" style={linkStyle}>
+            <NavLink to="/dance-master/notes" style={linkStyle}>
               Notes
             </NavLink>
           </div>

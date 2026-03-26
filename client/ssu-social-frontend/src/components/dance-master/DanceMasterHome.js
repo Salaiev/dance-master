@@ -436,7 +436,7 @@ export default function DanceMasterHome() {
             <QuickCard icon="🏆" title="Challenges" desc="Earn badges & level up"
               onClick={() => navigate("/dance-master/challenges")} accent="#fef3c7" />
             <QuickCard icon="📝" title="Notes" desc="Review your lesson notes"
-              onClick={() => navigate("/dance-master/lessons")} accent={BLUE_LIGHT} />
+              onClick={() => navigate("/dance-master/notes")} accent={BLUE_LIGHT} />
           </div>
         </div>
 
@@ -657,8 +657,8 @@ export default function DanceMasterHome() {
                 )}
               </div>
               <button className="dm-btn dm-btn-outline" style={{ marginTop: 12, fontSize: 13 }}
-                onClick={() => navigate("/dance-master/lessons")}>
-                Open Lessons
+                onClick={() => navigate("/dance-master/notes")}>
+                Open Notes
               </button>
             </div>
 

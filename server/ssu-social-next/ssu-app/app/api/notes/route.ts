@@ -1,89 +1,103 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { corsHeaders } from "@/utilities/cors";
 import sql from "@/utilities/db";
 
-function getUserId(req: Request): string {
-  // For now use header; later replace with real auth
-  return req.headers.get("x-user-id") || "11111111-1111-1111-1111-111111111111";
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 204,
+    headers: corsHeaders,
+  });
 }
 
-export async function GET(req: Request) {
+// GET /api/notes?user_id=<uuid>&lessonId=<uuid> (lessonId optional)
+export async function GET(req: NextRequest) {
   try {
-    const userId = getUserId(req);
-    const url = new URL(req.url);
-    const lessonId = url.searchParams.get("lessonId"); // optional filter
+    const userId = req.nextUrl.searchParams.get("user_id");
+    const lessonId = req.nextUrl.searchParams.get("lessonId");
 
-    let rows;
-
-    if (lessonId) {
-      rows = await sql`
-        SELECT
-          note_id,
-          user_id,
-          lesson_id,
-          content,
-          created_at,
-          updated_at
-        FROM dm_notes
-        WHERE user_id = ${userId}
-          AND lesson_id = ${lessonId}
-        ORDER BY updated_at DESC
-      `;
-    } else {
-      rows = await sql`
-        SELECT
-          note_id,
-          user_id,
-          lesson_id,
-          content,
-          created_at,
-          updated_at
-        FROM dm_notes
-        WHERE user_id = ${userId}
-        ORDER BY updated_at DESC
-      `;
+    if (!userId) {
+      return NextResponse.json(
+        { error: "Missing required query parameter: user_id" },
+        { status: 400, headers: corsHeaders }
+      );
     }
 
-    return NextResponse.json({ userId, items: rows });
+    const rows = lessonId
+      ? await sql`
+          SELECT
+            n.note_id,
+            n.user_id,
+            n.lesson_id,
+            n.content,
+            n.created_at,
+            n.updated_at,
+            l.title AS lesson_title
+          FROM dm_notes n
+          LEFT JOIN dm_lessons l ON l.lesson_id = n.lesson_id
+          WHERE n.user_id = ${userId}
+            AND n.lesson_id = ${lessonId}
+          ORDER BY n.updated_at DESC
+        `
+      : await sql`
+          SELECT
+            n.note_id,
+            n.user_id,
+            n.lesson_id,
+            n.content,
+            n.created_at,
+            n.updated_at,
+            l.title AS lesson_title
+          FROM dm_notes n
+          LEFT JOIN dm_lessons l ON l.lesson_id = n.lesson_id
+          WHERE n.user_id = ${userId}
+          ORDER BY n.updated_at DESC
+        `;
+
+    return NextResponse.json(
+      { items: rows },
+      { status: 200, headers: corsHeaders }
+    );
   } catch (err: any) {
     return NextResponse.json(
-      { error: err?.message ?? "Failed to fetch notes" },
-      { status: 500 }
+      { error: err?.message ?? String(err) },
+      { status: 500, headers: corsHeaders }
     );
   }
 }
 
-export async function POST(req: Request) {
+// POST /api/notes
+export async function POST(req: NextRequest) {
   try {
-    const userId = getUserId(req);
-    const body = await req.json().catch(() => ({} as any));
+    const body = await req.json();
+    const { lesson_id, user_id, content } = body;
 
-    const lessonId = typeof body.lessonId === "string" ? body.lessonId.trim() : "";
-    const content = typeof body.content === "string" ? body.content.trim() : "";
-
-    if (!lessonId) {
-      return NextResponse.json({ error: "lessonId is required" }, { status: 400 });
-    }
-    if (!content) {
-      return NextResponse.json({ error: "content is required" }, { status: 400 });
+    if (!lesson_id || !user_id || !content?.trim()) {
+      return NextResponse.json(
+        { error: "lesson_id, user_id and content are required." },
+        { status: 400, headers: corsHeaders }
+      );
     }
 
-    const rows = await sql`
-      INSERT INTO dm_notes (user_id, lesson_id, content)
-      VALUES (${userId}, ${lessonId}, ${content})
+    const inserted = await sql`
+      INSERT INTO dm_notes (lesson_id, user_id, content)
+      VALUES (${lesson_id}, ${user_id}, ${content.trim()})
       RETURNING
         note_id,
         user_id,
         lesson_id,
         content,
         created_at,
-        updated_at;
+        updated_at
     `;
 
-    return NextResponse.json(rows[0], { status: 201 });
+    return NextResponse.json(
+      { note: inserted[0] },
+      { status: 201, headers: corsHeaders }
+    );
   } catch (err: any) {
     return NextResponse.json(
-      { error: err?.message ?? "Failed to create note" },
-      { status: 500 }
+      { error: err?.message ?? String(err) },
+      { status: 500, headers: corsHeaders }
     );
   }
 }

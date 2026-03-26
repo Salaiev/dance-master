@@ -8,17 +8,31 @@ function getUserId() {
   );
 }
 
+function requireUserId() {
+  const userId = getUserId();
+  if (!userId) {
+    throw new Error("No user_id found in localStorage.");
+  }
+  return userId;
+}
+
 async function request(path, options = {}) {
+  const headers = {
+    ...(options.body ? { "Content-Type": "application/json" } : {}),
+    ...(options.headers || {}),
+  };
+
   const res = await fetch(`${BASE}${path}`, {
     ...options,
-    headers: {
-      "Content-Type": "application/json",
-      "x-user-id": getUserId(),
-      ...(options.headers || {}),
-    },
+    headers,
   });
+
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data?.error || `Request failed: ${res.status}`);
+
+  if (!res.ok) {
+    throw new Error(data?.error || `Request failed: ${res.status}`);
+  }
+
   return data;
 }
 
@@ -27,41 +41,86 @@ export const getLessons = () => request("/lessons");
 export const getLesson = (id) => request(`/lessons/${id}`);
 
 // notes
-export const getNotes = (lessonId) =>
-  request(`/notes?lessonId=${encodeURIComponent(lessonId)}`);
-export const addNote = (lessonId, content) =>
-  request("/notes", {
+export const getNotes = (lessonId) => {
+  const userId = requireUserId();
+  return request(
+    `/notes?lessonId=${encodeURIComponent(lessonId)}&user_id=${encodeURIComponent(userId)}`
+  );
+};
+
+export const getAllNotes = () => {
+  const userId = requireUserId();
+  return request(`/notes?user_id=${encodeURIComponent(userId)}`);
+};
+
+export const addNote = (lessonId, content) => {
+  const userId = requireUserId();
+  return request("/notes", {
     method: "POST",
-    body: JSON.stringify({ lessonId, content }),
+    body: JSON.stringify({
+      lesson_id: lessonId,
+      user_id: userId,
+      content,
+    }),
   });
-export const editNote = (noteId, content) =>
-  request(`/notes/${noteId}`, {
+};
+
+export const editNote = (noteId, content) => {
+  const userId = requireUserId();
+  return request(`/notes/${noteId}`, {
     method: "PATCH",
-    body: JSON.stringify({ content }),
+    body: JSON.stringify({
+      user_id: userId,
+      content,
+    }),
   });
-export const removeNote = (noteId) =>
-  request(`/notes/${noteId}`, { method: "DELETE" });
+};
+
+export const removeNote = (noteId) => {
+  const userId = requireUserId();
+  return request(`/notes/${noteId}`, {
+    method: "DELETE",
+    body: JSON.stringify({
+      user_id: userId,
+    }),
+  });
+};
 
 // comments
 export const getComments = (lessonId) =>
   request(`/comments?lesson_id=${encodeURIComponent(lessonId)}`);
-export const addComment = (lessonId, content) =>
-  request(`/comments`, {
-    method: "POST",
-    body: JSON.stringify({ lesson_id: lessonId, user_id: getUserId(), content }),
-  });
-export const replyComment = (lessonId, replyId, content) =>
-  request(`/comments`, {
+
+export const addComment = (lessonId, content) => {
+  const userId = requireUserId();
+  return request(`/comments`, {
     method: "POST",
     body: JSON.stringify({
       lesson_id: lessonId,
-      user_id: getUserId(),
+      user_id: userId,
+      content,
+    }),
+  });
+};
+
+export const replyComment = (lessonId, replyId, content) => {
+  const userId = requireUserId();
+  return request(`/comments`, {
+    method: "POST",
+    body: JSON.stringify({
+      lesson_id: lessonId,
+      user_id: userId,
       reply_id: replyId,
       content,
     }),
   });
-export const deleteComment = (commentId) =>
-  request(`/comments/${commentId}`, {
+};
+
+export const deleteComment = (commentId) => {
+  const userId = requireUserId();
+  return request(`/comments/${commentId}`, {
     method: "DELETE",
-    body: JSON.stringify({ user_id: getUserId() }),
+    body: JSON.stringify({
+      user_id: userId,
+    }),
   });
+};
