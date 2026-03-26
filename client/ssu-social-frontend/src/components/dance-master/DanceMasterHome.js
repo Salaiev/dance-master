@@ -3,6 +3,9 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getLessons, getNotes } from "./dmApi";
 
+const BASE =
+  process.env.REACT_APP_BACKEND_SERVER_URI || "http://localhost:3000/api";
+
 /* ─── helpers ─────────────────────────────────────────────── */
 function formatMinutes(mins) {
   return `${Number(mins || 0)} min`;
@@ -281,24 +284,28 @@ export default function DanceMasterHome() {
         if (!mounted) return;
         setRecentNotes(flatNotes);
 
-        // ✅ BUG FIX: Check res.ok BEFORE calling .json()
-        // Previously, .json() was called on an HTML error page which threw:
-        // "Unexpected token '<', "<!DOCTYPE..." is not valid JSON"
         if (userId) {
-          const summaryRes = await fetch(`/api/progress/summary?user_id=${userId}`);
+          try {
+            const summaryRes = await fetch(`${BASE}/progress/summary?user_id=${userId}`);
 
-          if (!summaryRes.ok) {
-            // Gracefully degrade — don't crash the whole page
-            console.warn("Progress summary unavailable:", summaryRes.status);
+            if (!summaryRes.ok) {
+              console.warn("Progress summary unavailable:", summaryRes.status);
+              if (mounted) {
+                setSummary(null);
+                setRecentCompleted([]);
+              }
+            } else {
+              const summaryData = await summaryRes.json();
+              if (!mounted) return;
+              setSummary(summaryData.summary || null);
+              setRecentCompleted(summaryData.recent_completed || []);
+            }
+          } catch {
+            // Progress summary route not available — degrade gracefully
             if (mounted) {
               setSummary(null);
               setRecentCompleted([]);
             }
-          } else {
-            const summaryData = await summaryRes.json();
-            if (!mounted) return;
-            setSummary(summaryData.summary || null);
-            setRecentCompleted(summaryData.recent_completed || []);
           }
         } else {
           if (mounted) {
