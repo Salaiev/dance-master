@@ -11,18 +11,20 @@ app.prepare().then(() => {
   const server = http.createServer((req, res) => {
     // Let Socket.IO handle its own polling endpoints; avoid Next adding redirects/headers
     if (req.url && req.url.startsWith("/socket.io")) {
-      return; // socket.io has its own 'request' listener attached below
+      return;
     }
 
     // Global CORS preflight responder for API routes
     if (req.method === "OPTIONS" && req.url && req.url.startsWith("/api/")) {
+      const origin = req.headers.origin || "http://localhost:3001";
       const allowHeaders =
         req.headers["access-control-request-headers"] ||
-        "Content-Type, Authorization, X-Requested-With";
+        "Content-Type, Authorization, X-Requested-With, x-user-id";
+
       res.writeHead(204, {
-        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Origin": origin,
         "Access-Control-Allow-Credentials": "true",
-        "Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS",
+        "Access-Control-Allow-Methods": "GET,POST,PUT,PATCH,DELETE,OPTIONS",
         "Access-Control-Allow-Headers": allowHeaders,
         "Access-Control-Max-Age": "86400",
         Vary: "Origin",
@@ -37,12 +39,11 @@ app.prepare().then(() => {
   const io = new Server(server, {
     cors: {
       origin: function (origin, callback) {
-        // Allow requests with no origin (like mobile apps or curl requests)
         if (!origin) return callback(null, true);
 
         const allowedOrigins = [
           "http://localhost:3001",
-          "https://ssu-social-newwave.vercel.app"  // Production
+          "https://ssu-social-newwave.vercel.app",
         ];
 
         if (allowedOrigins.includes(origin)) {
@@ -50,8 +51,13 @@ app.prepare().then(() => {
         }
         return callback(new Error("Not allowed by CORS: " + origin));
       },
-      methods: ["GET", "POST", "OPTIONS"],
-      allowedHeaders: ["Content-Type", "Authorization"],
+      methods: ["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"],
+      allowedHeaders: [
+        "Content-Type",
+        "Authorization",
+        "X-Requested-With",
+        "x-user-id",
+      ],
       credentials: true,
     },
   });
@@ -79,9 +85,7 @@ app.prepare().then(() => {
     socket.on("deleteComment", (data) => {
       chatNamespace.emit("deleteComment", data);
     });
-
   });
-
 
   server.listen(port, () => {
     setTimeout(() => {

@@ -29,18 +29,44 @@ async function request(path, options = {}) {
     ...(options.headers || {}),
   };
 
-  const res = await fetch(buildUrl(path), {
-    ...options,
-    headers,
-  });
+  const url = buildUrl(path);
 
-  const data = await res.json().catch(() => ({}));
+  console.log("========== API REQUEST ==========");
+  console.log("BASE =", BASE);
+  console.log("PATH =", path);
+  console.log("FULL URL =", url);
+  console.log("METHOD =", options.method || "GET");
+  console.log("HEADERS =", headers);
+  console.log("BODY =", options.body || null);
 
-  if (!res.ok) {
-    throw new Error(data?.error || `Request failed: ${res.status}`);
+  try {
+    const res = await fetch(url, {
+      ...options,
+      headers,
+    });
+
+    console.log("RESPONSE STATUS =", res.status);
+    console.log("RESPONSE OK =", res.ok);
+    console.log("RESPONSE TYPE =", res.type);
+    console.log("================================");
+
+    const data = await res.json().catch(() => ({}));
+
+    console.log("RESPONSE DATA =", data);
+
+    if (!res.ok) {
+      throw new Error(data?.error || `Request failed: ${res.status}`);
+    }
+
+    return data;
+  } catch (err) {
+    console.error("FETCH FAILED");
+    console.error("FAILED URL =", url);
+    console.error("FAILED METHOD =", options.method || "GET");
+    console.error("FAILED ERROR =", err);
+    console.error("================================");
+    throw err;
   }
-
-  return data;
 }
 
 // lessons
