@@ -1,6 +1,6 @@
 const BASE = process.env.REACT_APP_BACKEND_SERVER_URI; // http://localhost:3000/api
 
-function getUserId() {
+export function getUserId() {
   return (
     localStorage.getItem("userId") ||
     localStorage.getItem("user_id") ||
@@ -156,6 +156,19 @@ export const deleteComment = (commentId) => {
     method: "DELETE",
     body: JSON.stringify({
       user_id: userId,
+    }),
+  });
+};
+
+// AI assistance
+export const askLessonAI = (lessonId, question) => {
+  const userId = requireUserId();
+  return request("/dm-ai-assistant", {
+    method: "POST",
+    body: JSON.stringify({
+      lesson_id: lessonId,
+      user_id: userId,
+      question,
     }),
   });
 };
