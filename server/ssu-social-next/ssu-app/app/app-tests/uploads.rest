@@ -1,0 +1,8 @@
+POST http://localhost:3000/api/uploads/presign
+Content-Type: application/json
+
+{
+  "fileName": "test.png",
+  "fileType": "image/png",
+  "folder": "misc"
+}
