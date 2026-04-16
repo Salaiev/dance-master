@@ -1,11 +1,8 @@
 import { NextResponse } from "next/server";
-
 import { censorText } from "@/utilities/moderation";
- 
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { corsHeaders } from "@/utilities/cors";
-
 import sql from "@/utilities/db";
 
 export async function OPTIONS() {
@@ -17,7 +14,6 @@ export async function OPTIONS() {
 
 export async function PUT(req: Request) {
   try {
-    // Extract token from Authorization header
     const authHeader = req.headers.get("authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return NextResponse.json(
@@ -28,6 +24,7 @@ export async function PUT(req: Request) {
 
     const token = authHeader.split(" ")[1];
     let decoded: any;
+
     try {
       decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET!);
     } catch (err) {
@@ -46,17 +43,17 @@ export async function PUT(req: Request) {
       );
     }
 
-    // Parse request body safely
     const body = await req.json();
     const username = body.username?.trim() || null;
     const email = body.email?.trim() || null;
     const password = body.password?.trim() || null;
     const biography = body.biography?.trim() || null;
+    const profileImage = body.profileImage?.trim() || null;
 
-    // Fetch current user
     const [existingUser] = await sql`
       SELECT * FROM ssu_users WHERE user_id = ${userId}
     `;
+
     if (!existingUser) {
       return NextResponse.json(
         { success: false, message: "User not found" },
@@ -64,12 +61,13 @@ export async function PUT(req: Request) {
       );
     }
 
-    // Check for username conflict (case-insensitive)
     if (username) {
       const [conflict] = await sql`
-        SELECT user_id, username FROM ssu_users
+        SELECT user_id, username
+        FROM ssu_users
         WHERE LOWER(username) = LOWER(${username}) AND user_id <> ${userId}
       `;
+
       if (conflict) {
         return NextResponse.json(
           { success: false, message: "Username is already taken" },
@@ -78,7 +76,6 @@ export async function PUT(req: Request) {
       }
     }
 
-    // Hash password if provided
     let hashedPassword = existingUser.password;
     if (password) {
       const salt = await bcrypt.genSalt(10);
@@ -91,23 +88,22 @@ export async function PUT(req: Request) {
       bioForUpdate = text;
     }
 
-    // Update user in DB
     const [updatedUser] = await sql`
       UPDATE ssu_users
       SET
         username = COALESCE(${username}, username),
         email = COALESCE(${email}, email),
         password = ${hashedPassword},
-        biography = COALESCE(${bioForUpdate}, biography)
+        biography = COALESCE(${bioForUpdate}, biography),
+        profile_image = COALESCE(${profileImage}, profile_image)
       WHERE user_id = ${userId}
       RETURNING
         user_id::text AS "_id",
         username,
         email,
-        biography
+        biography,
+        profile_image AS "profileImage"
     `;
-
-    console.log("✅ User updated successfully:", updatedUser.username);
 
     return NextResponse.json(
       {

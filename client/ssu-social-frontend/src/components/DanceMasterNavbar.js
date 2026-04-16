@@ -63,6 +63,11 @@ export default function DanceMasterNavbar() {
             <NavLink to="/dance-master/notes" style={linkStyle}>
               Notes
             </NavLink>
+
+            {/* ✅ NEW PROFILE LINK */}
+            <NavLink to="/dance-master/profile" style={linkStyle}>
+              Profile
+            </NavLink>
           </div>
         </div>
 
