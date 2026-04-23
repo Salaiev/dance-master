@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { corsHeaders } from "@/utilities/cors";
 import sql from "@/utilities/db";
+import {
+  sendBadgeEarnedNotification,
+  sendChallengeCompletedNotification,
+} from "../../../lib/notificationService";
 
 // Level thresholds (must match challenges/route.ts)
 const LEVEL_THRESHOLDS = [
@@ -91,7 +95,12 @@ export async function POST(req: NextRequest) {
           INSERT INTO dm_xp_log (user_id, xp_amount, reason)
           VALUES (${user_id}, ${streakBonus}, 'streak_bonus')
         `;
-        awarded.push({ type: "streak", title: `${newStreak}-Day Streak Bonus`, xp: streakBonus, icon: "🔥" });
+        awarded.push({
+          type: "streak",
+          title: `${newStreak}-Day Streak Bonus`,
+          xp: streakBonus,
+          icon: "🔥",
+        });
       }
     }
 
@@ -145,25 +154,38 @@ export async function POST(req: NextRequest) {
       }
 
       if (currentValue >= badge.requirement_value) {
-        // Award badge
-        await sql`
+        const insertedBadge = await sql`
           INSERT INTO dm_user_badges (user_id, badge_id)
           VALUES (${user_id}, ${badge.badge_id})
           ON CONFLICT (user_id, badge_id) DO NOTHING
+          RETURNING id
         `;
 
-        totalNewXp += badge.xp_reward;
-        await sql`
-          INSERT INTO dm_xp_log (user_id, xp_amount, reason, reference_id)
-          VALUES (${user_id}, ${badge.xp_reward}, 'badge_earned', ${badge.badge_id})
-        `;
+        const badgeWasNewlyAwarded = insertedBadge.length > 0;
 
-        awarded.push({
-          type: "badge",
-          title: badge.title,
-          xp: badge.xp_reward,
-          icon: badge.icon,
-        });
+        if (badgeWasNewlyAwarded) {
+          totalNewXp += badge.xp_reward;
+          await sql`
+            INSERT INTO dm_xp_log (user_id, xp_amount, reason, reference_id)
+            VALUES (${user_id}, ${badge.xp_reward}, 'badge_earned', ${badge.badge_id})
+          `;
+
+          awarded.push({
+            type: "badge",
+            title: badge.title,
+            xp: badge.xp_reward,
+            icon: badge.icon,
+          });
+
+          try {
+            await sendBadgeEarnedNotification({
+              userId: user_id,
+              badgeId: badge.badge_id,
+            });
+          } catch (error) {
+            console.error("Badge notification failed:", error);
+          }
+        }
       }
     }
 
@@ -263,6 +285,15 @@ export async function POST(req: NextRequest) {
           xp: challenge.xp_reward,
           icon: challenge.icon,
         });
+
+        try {
+          await sendChallengeCompletedNotification({
+            userId: user_id,
+            challengeId: challenge.challenge_id,
+          });
+        } catch (error) {
+          console.error("Challenge notification failed:", error);
+        }
       }
     }
 

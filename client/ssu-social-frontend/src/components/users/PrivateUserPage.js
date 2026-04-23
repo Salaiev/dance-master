@@ -335,6 +335,7 @@ const PrivateUserPage = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
 
   const [selectedFile, setSelectedFile] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState("");
 
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -343,6 +344,14 @@ const PrivateUserPage = () => {
   const [showUploadModal, setShowUploadModal] = useState(false);
 
   const BACKEND = process.env.REACT_APP_BACKEND_SERVER_URI;
+
+  useEffect(() => {
+    return () => {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [previewUrl]);
 
   const loadUser = async () => {
     try {
@@ -388,7 +397,9 @@ const PrivateUserPage = () => {
       setUsername(data.username || "");
       setEmail(data.email || "");
       setBiography(data.biography || "");
-      setProfileImage(data.profileImage || DEFAULT_PROFILE_IMAGE);
+      setProfileImage(
+        data.profileImage || data.profile_image || DEFAULT_PROFILE_IMAGE
+      );
     } catch (err) {
       console.error("Failed to load user:", err);
       setError("Failed to load user information.");
@@ -424,7 +435,7 @@ const PrivateUserPage = () => {
   };
 
   const onFileChange = (event) => {
-    const file = event.target.files[0];
+    const file = event.target.files?.[0];
     if (!file) return;
 
     const validImageTypes = [
@@ -435,18 +446,39 @@ const PrivateUserPage = () => {
       "image/webp",
     ];
 
+    const maxFileSize = 5 * 1024 * 1024;
+
     if (!validImageTypes.includes(file.type)) {
       setError("Please select a valid image file.");
       event.target.value = "";
       return;
     }
 
+    if (file.size > maxFileSize) {
+      setError("Image must be 5 MB or smaller.");
+      event.target.value = "";
+      return;
+    }
+
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+    }
+
+    const newPreviewUrl = URL.createObjectURL(file);
+
     setError("");
     setSelectedFile(file);
+    setPreviewUrl(newPreviewUrl);
   };
 
   const removeSelectedImage = () => {
     setSelectedFile(null);
+
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+      setPreviewUrl("");
+    }
+
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -497,14 +529,6 @@ const PrivateUserPage = () => {
         );
       }
 
-      setProfileImage(fileUrl);
-      setSelectedFile(null);
-
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
-
-      setMessage("Profile image uploaded successfully.");
       return fileUrl;
     } catch (err) {
       console.error("Image upload failed:", err);
@@ -516,6 +540,86 @@ const PrivateUserPage = () => {
       return null;
     } finally {
       setUploading(false);
+    }
+  };
+
+  const updateUserProfile = async ({
+    usernameValue = username,
+    emailValue = email,
+    biographyValue = biography,
+    profileImageValue = profileImage,
+    passwordValue = "",
+  } = {}) => {
+    if (!token) {
+      throw new Error("Missing login token.");
+    }
+
+    const requestBody = {
+      username: usernameValue.trim(),
+      email: emailValue.trim(),
+      biography: biographyValue.trim(),
+      profileImage: profileImageValue,
+    };
+
+    if (passwordValue && passwordValue.trim()) {
+      requestBody.password = passwordValue.trim();
+    }
+
+    const response = await axios.put(
+      `${BACKEND}/user/editUser`,
+      requestBody,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    return response;
+  };
+
+  const handleUploadAndSaveImage = async () => {
+    try {
+      if (!selectedFile) {
+        setError("Please select an image first.");
+        return;
+      }
+
+      if (!token) {
+        setError("Missing login token.");
+        return;
+      }
+
+      setError("");
+      setMessage("");
+
+      const uploadedUrl = await uploadProfileImageToS3();
+
+      if (!uploadedUrl) return;
+
+      const response = await updateUserProfile({
+        profileImageValue: uploadedUrl,
+      });
+
+      if (response.data?.success) {
+        setProfileImage(
+          response.data?.user?.profileImage || uploadedUrl
+        );
+
+        setMessage("Profile image uploaded and saved successfully.");
+        setShowUploadModal(false);
+        removeSelectedImage();
+        await loadUser();
+      } else {
+        setError(response.data?.message || "Failed to save profile image.");
+      }
+    } catch (err) {
+      console.error("Saving uploaded image failed:", err);
+      setError(
+        err?.response?.data?.message ||
+          err?.message ||
+          "Failed to save uploaded profile image."
+      );
     }
   };
 
@@ -542,38 +646,31 @@ const PrivateUserPage = () => {
 
       if (selectedFile) {
         const uploadedUrl = await uploadProfileImageToS3();
+
         if (!uploadedUrl) {
           setSaving(false);
           return;
         }
+
         finalProfileImage = uploadedUrl;
       }
 
-      const requestBody = {
-        username: username.trim(),
-        email: email.trim(),
-        biography: biography.trim(),
-        profileImage: finalProfileImage,
-      };
-
-      if (password.trim()) {
-        requestBody.password = password.trim();
-      }
-
-      const response = await axios.put(
-        `${BACKEND}/user/editUser`,
-        requestBody,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const response = await updateUserProfile({
+        usernameValue: username,
+        emailValue: email,
+        biographyValue: biography,
+        profileImageValue: finalProfileImage,
+        passwordValue: password,
+      });
 
       if (response.data?.success) {
+        setProfileImage(
+          response.data?.user?.profileImage || finalProfileImage
+        );
         setMessage("Profile updated successfully.");
         setPassword("");
         setConfirmPassword("");
+        removeSelectedImage();
         await loadUser();
       } else {
         setError(response.data?.message || "Failed to update profile.");
@@ -582,6 +679,7 @@ const PrivateUserPage = () => {
       console.error("Save failed:", err);
       setError(
         err?.response?.data?.message ||
+          err?.message ||
           "Failed to save profile changes."
       );
     } finally {
@@ -648,7 +746,7 @@ const PrivateUserPage = () => {
 
             <div style={styles.profileTop}>
               <img
-                src={selectedFile ? URL.createObjectURL(selectedFile) : profileImage}
+                src={previewUrl || profileImage}
                 alt="Profile"
                 style={styles.avatar}
                 onError={(e) => {
@@ -748,7 +846,8 @@ const PrivateUserPage = () => {
             <div>
               <div style={styles.prefTitle}>Email Notifications</div>
               <div style={styles.prefText}>
-                Receive email updates about new lessons, challenges, and account activity.
+                Receive email updates about new lessons, challenges, and account
+                activity.
               </div>
             </div>
             <div style={styles.fakeToggleOn}>
@@ -795,10 +894,10 @@ const PrivateUserPage = () => {
                 style={styles.input}
               />
 
-              {selectedFile && (
+              {previewUrl && (
                 <div style={styles.previewWrap}>
                   <img
-                    src={URL.createObjectURL(selectedFile)}
+                    src={previewUrl}
                     alt="Preview"
                     style={styles.previewImg}
                   />
@@ -816,6 +915,7 @@ const PrivateUserPage = () => {
                   Remove Selection
                 </button>
               )}
+
               <button
                 type="button"
                 style={styles.secondaryBtn}
@@ -823,16 +923,12 @@ const PrivateUserPage = () => {
               >
                 Close
               </button>
+
               <button
                 type="button"
                 style={styles.darkBtn}
-                onClick={async () => {
-                  const uploadedUrl = await uploadProfileImageToS3();
-                  if (uploadedUrl) {
-                    setShowUploadModal(false);
-                  }
-                }}
-                disabled={!selectedFile || uploading}
+                onClick={handleUploadAndSaveImage}
+                disabled={!selectedFile || uploading || saving}
               >
                 {uploading ? "Uploading..." : "Upload"}
               </button>

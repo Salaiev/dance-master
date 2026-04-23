@@ -1,0 +1,19 @@
+GET http://localhost:3000/api/notifications/preferences
+Authorization: Bearer YOUR_ACCESS_TOKEN
+
+PUT http://localhost:3000/api/notifications/preferences
+Content-Type: application/json
+Authorization: Bearer YOUR_ACCESS_TOKEN
+
+{
+  "emailEnabled": true,
+  "challengeCompletedEmail": true,
+  "badgeEarnedEmail": true,
+  "inactivityEmail": true,
+  "inactivityDaysThreshold": 1
+}
+
+
+
+POST http://localhost:3000/api/cron/inactivity-reminders
+Authorization: Bearer a3f9c8d1b7e4f2c9a6d8e1f0b3c5a7e9d2c4b6f8a1e3d5c7b9f0a2c4e6d8f1a3
