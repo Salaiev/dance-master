@@ -15,6 +15,7 @@ export async function OPTIONS() {
 export async function PUT(req: Request) {
   try {
     const authHeader = req.headers.get("authorization");
+
     if (!authHeader?.startsWith("Bearer ")) {
       return NextResponse.json(
         { success: false, message: "Unauthorized: Missing token" },
@@ -35,7 +36,8 @@ export async function PUT(req: Request) {
       );
     }
 
-    const userId = decoded.id;
+    const userId = decoded?.id || decoded?.user_id || decoded?.userId || decoded?.sub;
+
     if (!userId) {
       return NextResponse.json(
         { success: false, message: "Invalid token payload" },
@@ -44,14 +46,22 @@ export async function PUT(req: Request) {
     }
 
     const body = await req.json();
-    const username = body.username?.trim() || null;
-    const email = body.email?.trim() || null;
-    const password = body.password?.trim() || null;
-    const biography = body.biography?.trim() || null;
-    const profileImage = body.profileImage?.trim() || null;
+
+    const username =
+      typeof body.username === "string" ? body.username.trim() : null;
+    const email =
+      typeof body.email === "string" ? body.email.trim() : null;
+    const password =
+      typeof body.password === "string" ? body.password.trim() : null;
+    const biography =
+      typeof body.biography === "string" ? body.biography.trim() : null;
+    const profileImage =
+      typeof body.profileImage === "string" ? body.profileImage.trim() : null;
 
     const [existingUser] = await sql`
-      SELECT * FROM ssu_users WHERE user_id = ${userId}
+      SELECT *
+      FROM ssu_users
+      WHERE user_id = ${userId}
     `;
 
     if (!existingUser) {
@@ -62,13 +72,14 @@ export async function PUT(req: Request) {
     }
 
     if (username) {
-      const [conflict] = await sql`
+      const [usernameConflict] = await sql`
         SELECT user_id, username
         FROM ssu_users
-        WHERE LOWER(username) = LOWER(${username}) AND user_id <> ${userId}
+        WHERE LOWER(username) = LOWER(${username})
+          AND user_id <> ${userId}
       `;
 
-      if (conflict) {
+      if (usernameConflict) {
         return NextResponse.json(
           { success: false, message: "Username is already taken" },
           { status: 409, headers: corsHeaders }
@@ -76,13 +87,31 @@ export async function PUT(req: Request) {
       }
     }
 
+    if (email) {
+      const [emailConflict] = await sql`
+        SELECT user_id, email
+        FROM ssu_users
+        WHERE LOWER(email) = LOWER(${email})
+          AND user_id <> ${userId}
+      `;
+
+      if (emailConflict) {
+        return NextResponse.json(
+          { success: false, message: "Email is already in use" },
+          { status: 409, headers: corsHeaders }
+        );
+      }
+    }
+
     let hashedPassword = existingUser.password;
+
     if (password) {
       const salt = await bcrypt.genSalt(10);
       hashedPassword = await bcrypt.hash(password, salt);
     }
 
     let bioForUpdate = biography;
+
     if (bioForUpdate) {
       const { text } = await censorText(bioForUpdate);
       bioForUpdate = text;
@@ -116,7 +145,10 @@ export async function PUT(req: Request) {
   } catch (error) {
     console.error("🔥 Error updating user:", error);
     return NextResponse.json(
-      { success: false, message: "Server error while updating user information" },
+      {
+        success: false,
+        message: "Server error while updating user information",
+      },
       { status: 500, headers: corsHeaders }
     );
   }
