@@ -1,12 +1,319 @@
 import React, { useEffect, useRef, useState } from "react";
 import axios from "axios";
 import { Link, useNavigate } from "react-router-dom";
-import Button from "react-bootstrap/Button";
-import Modal from "react-bootstrap/Modal";
 import { getUserInfoAsync } from "../../utilities/decodeJwtAsync";
 
 const DEFAULT_PROFILE_IMAGE =
   "https://ssusocial.s3.amazonaws.com/profilepictures/ProfileIcon.png";
+
+const styles = {
+  page: {
+    minHeight: "100vh",
+    background: "#f8f8fb",
+    padding: "32px 24px 56px",
+  },
+  shell: {
+    maxWidth: 900,
+    margin: "0 auto",
+  },
+  topRow: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 24,
+  },
+  title: {
+    fontSize: 36,
+    fontWeight: 700,
+    color: "#111111",
+    margin: 0,
+    letterSpacing: "-0.02em",
+  },
+  logoutBtn: {
+    border: "1px solid #ef4444",
+    color: "#ef4444",
+    background: "#ffffff",
+    borderRadius: 12,
+    padding: "10px 16px",
+    fontWeight: 600,
+    cursor: "pointer",
+  },
+  alertSuccess: {
+    background: "#e8f7ee",
+    color: "#166534",
+    border: "1px solid #b7e4c7",
+    padding: "14px 16px",
+    borderRadius: 10,
+    marginBottom: 18,
+    fontSize: 14,
+  },
+  alertError: {
+    background: "#fdecec",
+    color: "#b42318",
+    border: "1px solid #f5c2c7",
+    padding: "14px 16px",
+    borderRadius: 10,
+    marginBottom: 18,
+    fontSize: 14,
+  },
+  sectionTitle: {
+    fontSize: 28,
+    fontWeight: 700,
+    color: "#161616",
+    margin: "0 0 14px 0",
+  },
+  card: {
+    background: "#ffffff",
+    border: "1px solid #eeeeee",
+    borderRadius: 18,
+    padding: 28,
+    boxShadow: "0 1px 2px rgba(16, 24, 40, 0.04)",
+    marginBottom: 22,
+  },
+  cardHeader: {
+    marginBottom: 20,
+  },
+  cardHeading: {
+    margin: 0,
+    fontSize: 18,
+    fontWeight: 700,
+    color: "#202124",
+  },
+  cardSubtext: {
+    marginTop: 6,
+    fontSize: 13,
+    color: "#6b7280",
+  },
+  profileTop: {
+    display: "flex",
+    alignItems: "center",
+    gap: 18,
+    marginBottom: 24,
+    flexWrap: "wrap",
+  },
+  avatar: {
+    width: 72,
+    height: 72,
+    borderRadius: "50%",
+    objectFit: "cover",
+    border: "1px solid #e5e7eb",
+    boxShadow: "0 2px 6px rgba(0,0,0,0.06)",
+  },
+  photoActionWrap: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 6,
+  },
+  changePhotoBtn: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 8,
+    border: "1px solid #d9d9df",
+    background: "#ffffff",
+    color: "#374151",
+    borderRadius: 10,
+    padding: "10px 14px",
+    fontSize: 13,
+    fontWeight: 600,
+    cursor: "pointer",
+  },
+  helperText: {
+    fontSize: 12,
+    color: "#9ca3af",
+  },
+  fieldGroup: {
+    marginBottom: 16,
+  },
+  label: {
+    display: "block",
+    marginBottom: 8,
+    fontSize: 13,
+    fontWeight: 600,
+    color: "#2d2d2d",
+  },
+  input: {
+    width: "100%",
+    border: "1px solid #e5e7eb",
+    background: "#f9fafb",
+    borderRadius: 10,
+    padding: "12px 14px",
+    fontSize: 14,
+    color: "#111827",
+    outline: "none",
+    boxSizing: "border-box",
+  },
+  textarea: {
+    width: "100%",
+    border: "1px solid #e5e7eb",
+    background: "#f9fafb",
+    borderRadius: 10,
+    padding: "12px 14px",
+    fontSize: 14,
+    color: "#111827",
+    outline: "none",
+    resize: "vertical",
+    minHeight: 120,
+    boxSizing: "border-box",
+  },
+  saveBtn: {
+    border: "none",
+    background: "#8b5cf6",
+    color: "#ffffff",
+    borderRadius: 10,
+    padding: "10px 18px",
+    fontSize: 14,
+    fontWeight: 700,
+    cursor: "pointer",
+    boxShadow: "0 1px 2px rgba(0,0,0,0.06)",
+  },
+  saveBtnDisabled: {
+    opacity: 0.7,
+    cursor: "not-allowed",
+  },
+  prefRow: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 16,
+    padding: "12px 0",
+  },
+  prefTitle: {
+    fontSize: 14,
+    fontWeight: 600,
+    color: "#1f2937",
+    marginBottom: 4,
+  },
+  prefText: {
+    fontSize: 12,
+    color: "#6b7280",
+  },
+  divider: {
+    height: 1,
+    background: "#f0f0f0",
+    margin: "0",
+    border: "none",
+  },
+  fakeToggleOn: {
+    width: 38,
+    height: 22,
+    borderRadius: 999,
+    background: "#8b5cf6",
+    position: "relative",
+    flexShrink: 0,
+  },
+  fakeToggleOff: {
+    width: 38,
+    height: 22,
+    borderRadius: 999,
+    background: "#d1d5db",
+    position: "relative",
+    flexShrink: 0,
+  },
+  toggleKnobRight: {
+    position: "absolute",
+    top: 3,
+    right: 3,
+    width: 16,
+    height: 16,
+    borderRadius: "50%",
+    background: "#ffffff",
+  },
+  toggleKnobLeft: {
+    position: "absolute",
+    top: 3,
+    left: 3,
+    width: 16,
+    height: 16,
+    borderRadius: "50%",
+    background: "#ffffff",
+  },
+  modalOverlay: {
+    position: "fixed",
+    inset: 0,
+    background: "rgba(17, 24, 39, 0.45)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 9999,
+    padding: 16,
+  },
+  modalCard: {
+    width: "100%",
+    maxWidth: 460,
+    background: "#ffffff",
+    borderRadius: 16,
+    boxShadow: "0 20px 40px rgba(0,0,0,0.18)",
+    overflow: "hidden",
+  },
+  modalHeader: {
+    padding: "18px 20px",
+    borderBottom: "1px solid #f0f0f0",
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  modalTitle: {
+    margin: 0,
+    fontSize: 18,
+    fontWeight: 700,
+    color: "#111827",
+  },
+  closeBtn: {
+    border: "none",
+    background: "transparent",
+    fontSize: 22,
+    lineHeight: 1,
+    cursor: "pointer",
+    color: "#6b7280",
+  },
+  modalBody: {
+    padding: 20,
+  },
+  modalFooter: {
+    padding: "16px 20px 20px",
+    display: "flex",
+    justifyContent: "flex-end",
+    gap: 10,
+  },
+  secondaryBtn: {
+    border: "1px solid #d1d5db",
+    background: "#ffffff",
+    color: "#374151",
+    borderRadius: 10,
+    padding: "10px 16px",
+    fontWeight: 600,
+    cursor: "pointer",
+  },
+  darkBtn: {
+    border: "none",
+    background: "#111827",
+    color: "#ffffff",
+    borderRadius: 10,
+    padding: "10px 16px",
+    fontWeight: 600,
+    cursor: "pointer",
+  },
+  dangerBtn: {
+    border: "none",
+    background: "#ef4444",
+    color: "#ffffff",
+    borderRadius: 10,
+    padding: "10px 16px",
+    fontWeight: 600,
+    cursor: "pointer",
+  },
+  previewWrap: {
+    marginTop: 18,
+    textAlign: "center",
+  },
+  previewImg: {
+    width: 110,
+    height: 110,
+    borderRadius: "50%",
+    objectFit: "cover",
+    border: "1px solid #e5e7eb",
+  },
+};
 
 const PrivateUserPage = () => {
   const navigate = useNavigate();
@@ -185,7 +492,9 @@ const PrivateUserPage = () => {
       });
 
       if (!uploadResponse.ok) {
-        throw new Error(`Failed to upload image to S3. Status: ${uploadResponse.status}`);
+        throw new Error(
+          `Failed to upload image to S3. Status: ${uploadResponse.status}`
+        );
       }
 
       setProfileImage(fileUrl);
@@ -210,7 +519,9 @@ const PrivateUserPage = () => {
     }
   };
 
-  const handleSave = async () => {
+  const handleSave = async (e) => {
+    if (e) e.preventDefault();
+
     try {
       setSaving(true);
       setError("");
@@ -285,222 +596,288 @@ const PrivateUserPage = () => {
 
   if (loading) {
     return (
-      <div className="container py-5 text-center">
-        <h3>Loading profile...</h3>
+      <div style={styles.page}>
+        <div style={styles.shell}>
+          <div style={{ textAlign: "center", paddingTop: 40 }}>
+            <h3>Loading profile...</h3>
+          </div>
+        </div>
       </div>
     );
   }
 
   if (!user) {
     return (
-      <div className="container py-5 text-center">
-        <p>
-          Please <Link to="/">log in</Link> to view your profile.
-        </p>
+      <div style={styles.page}>
+        <div style={styles.shell}>
+          <div style={{ textAlign: "center", paddingTop: 40 }}>
+            <p>
+              Please <Link to="/">log in</Link> to view your profile.
+            </p>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="container py-5" style={{ maxWidth: "760px" }}>
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <h2 className="m-0">My Profile</h2>
-        <Button
-          variant="outline-danger"
-          onClick={() => setShowLogoutConfirmation(true)}
-        >
-          Log Out
-        </Button>
-      </div>
-
-      {message && (
-        <div className="alert alert-success" role="alert">
-          {message}
+    <div style={styles.page}>
+      <div style={styles.shell}>
+        <div style={styles.topRow}>
+          <h1 style={styles.title}>Settings</h1>
+          <button
+            type="button"
+            style={styles.logoutBtn}
+            onClick={() => setShowLogoutConfirmation(true)}
+          >
+            Log Out
+          </button>
         </div>
-      )}
 
-      {error && (
-        <div className="alert alert-danger" role="alert">
-          {error}
-        </div>
-      )}
+        {message && <div style={styles.alertSuccess}>{message}</div>}
+        {error && <div style={styles.alertError}>{error}</div>}
 
-      <div className="card shadow-sm border-0">
-        <div className="card-body p-4">
-          <div className="text-center mb-4">
-            <img
-              src={selectedFile ? URL.createObjectURL(selectedFile) : profileImage}
-              alt="Profile"
-              className="rounded-circle"
-              style={{
-                width: "140px",
-                height: "140px",
-                objectFit: "cover",
-                border: "1px solid #ddd",
-              }}
-              onError={(e) => {
-                e.target.onerror = null;
-                e.target.src = DEFAULT_PROFILE_IMAGE;
-              }}
-            />
-            <div className="mt-3 d-flex justify-content-center gap-2 flex-wrap">
-              <Button variant="dark" onClick={() => setShowUploadModal(true)}>
-                Change Picture
-              </Button>
-              {selectedFile && (
-                <Button
-                  variant="outline-secondary"
-                  onClick={removeSelectedImage}
-                >
-                  Remove Selection
-                </Button>
-              )}
+        <form onSubmit={handleSave}>
+          <div style={styles.card}>
+            <div style={styles.cardHeader}>
+              <h2 style={styles.cardHeading}>Profile Information</h2>
+              <div style={styles.cardSubtext}>
+                Manage your personal details and profile picture.
+              </div>
             </div>
-          </div>
 
-          <div className="mb-3">
-            <label className="form-label fw-semibold">Username</label>
-            <input
-              type="text"
-              className="form-control"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              placeholder="Enter username"
-            />
-          </div>
+            <div style={styles.profileTop}>
+              <img
+                src={selectedFile ? URL.createObjectURL(selectedFile) : profileImage}
+                alt="Profile"
+                style={styles.avatar}
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.src = DEFAULT_PROFILE_IMAGE;
+                }}
+              />
 
-          <div className="mb-3">
-            <label className="form-label fw-semibold">Email</label>
-            <input
-              type="email"
-              className="form-control"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Enter email"
-            />
-          </div>
+              <div style={styles.photoActionWrap}>
+                <button
+                  type="button"
+                  style={styles.changePhotoBtn}
+                  onClick={() => setShowUploadModal(true)}
+                >
+                  ⬆ Change Photo
+                </button>
+                <span style={styles.helperText}>JPG, PNG up to 5 MB</span>
+              </div>
+            </div>
 
-          <div className="mb-3">
-            <label className="form-label fw-semibold">Biography</label>
-            <textarea
-              className="form-control"
-              rows="4"
-              value={biography}
-              onChange={(e) => setBiography(e.target.value)}
-              placeholder="Tell something about yourself"
-            />
-          </div>
+            <div style={styles.fieldGroup}>
+              <label style={styles.label}>Full Name</label>
+              <input
+                type="text"
+                style={styles.input}
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="Enter username"
+              />
+            </div>
 
-          <hr className="my-4" />
+            <div style={styles.fieldGroup}>
+              <label style={styles.label}>Email Address</label>
+              <input
+                type="email"
+                style={styles.input}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Enter email"
+              />
+            </div>
 
-          <h5 className="mb-3">Change Password</h5>
+            <div style={styles.fieldGroup}>
+              <label style={styles.label}>Biography</label>
+              <textarea
+                style={styles.textarea}
+                value={biography}
+                onChange={(e) => setBiography(e.target.value)}
+                placeholder="Tell something about yourself"
+              />
+            </div>
 
-          <div className="mb-3">
-            <label className="form-label fw-semibold">New Password</label>
-            <input
-              type="password"
-              className="form-control"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Leave blank if you do not want to change it"
-            />
-          </div>
+            <div style={styles.fieldGroup}>
+              <label style={styles.label}>Password</label>
+              <input
+                type="password"
+                style={styles.input}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Leave blank if you do not want to change it"
+              />
+            </div>
 
-          <div className="mb-4">
-            <label className="form-label fw-semibold">Confirm New Password</label>
-            <input
-              type="password"
-              className="form-control"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              placeholder="Re-enter new password"
-            />
-          </div>
+            <div style={{ ...styles.fieldGroup, marginBottom: 20 }}>
+              <label style={styles.label}>Confirm Password</label>
+              <input
+                type="password"
+                style={styles.input}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Re-enter new password"
+              />
+            </div>
 
-          <div className="d-grid">
-            <Button
-              variant="primary"
-              onClick={handleSave}
+            <button
+              type="submit"
+              style={{
+                ...styles.saveBtn,
+                ...(saving || uploading ? styles.saveBtnDisabled : {}),
+              }}
               disabled={saving || uploading}
             >
               {saving ? "Saving..." : "Save Changes"}
-            </Button>
+            </button>
+          </div>
+        </form>
+
+        <div style={styles.card}>
+          <div style={styles.cardHeader}>
+            <h2 style={styles.cardHeading}>Application Preferences</h2>
+            <div style={styles.cardSubtext}>
+              Customize your app experience.
+            </div>
+          </div>
+
+          <div style={styles.prefRow}>
+            <div>
+              <div style={styles.prefTitle}>Email Notifications</div>
+              <div style={styles.prefText}>
+                Receive email updates about new lessons, challenges, and account activity.
+              </div>
+            </div>
+            <div style={styles.fakeToggleOn}>
+              <div style={styles.toggleKnobRight} />
+            </div>
+          </div>
+
+          <hr style={styles.divider} />
+
+          <div style={styles.prefRow}>
+            <div>
+              <div style={styles.prefTitle}>Dark Mode</div>
+              <div style={styles.prefText}>
+                Switch the app theme to a darker aesthetic.
+              </div>
+            </div>
+            <div style={styles.fakeToggleOff}>
+              <div style={styles.toggleKnobLeft} />
+            </div>
           </div>
         </div>
       </div>
 
-      <Modal show={showUploadModal} onHide={() => setShowUploadModal(false)} centered>
-        <Modal.Header closeButton>
-          <Modal.Title>Upload Profile Picture</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <input
-            type="file"
-            ref={fileInputRef}
-            accept="image/*"
-            onChange={onFileChange}
-            className="form-control"
-          />
-
-          {selectedFile && (
-            <div className="text-center mt-4">
-              <img
-                src={URL.createObjectURL(selectedFile)}
-                alt="Preview"
-                style={{
-                  width: "130px",
-                  height: "130px",
-                  objectFit: "cover",
-                  borderRadius: "50%",
-                  border: "1px solid #ddd",
-                }}
-              />
+      {showUploadModal && (
+        <div style={styles.modalOverlay}>
+          <div style={styles.modalCard}>
+            <div style={styles.modalHeader}>
+              <h3 style={styles.modalTitle}>Upload Profile Picture</h3>
+              <button
+                type="button"
+                style={styles.closeBtn}
+                onClick={() => setShowUploadModal(false)}
+              >
+                ×
+              </button>
             </div>
-          )}
-        </Modal.Body>
-        <Modal.Footer>
-          <Button
-            variant="secondary"
-            onClick={() => setShowUploadModal(false)}
-          >
-            Close
-          </Button>
-          <Button
-            variant="dark"
-            onClick={async () => {
-              const uploadedUrl = await uploadProfileImageToS3();
-              if (uploadedUrl) {
-                setShowUploadModal(false);
-              }
-            }}
-            disabled={!selectedFile || uploading}
-          >
-            {uploading ? "Uploading..." : "Upload"}
-          </Button>
-        </Modal.Footer>
-      </Modal>
 
-      <Modal
-        show={showLogoutConfirmation}
-        onHide={() => setShowLogoutConfirmation(false)}
-        centered
-      >
-        <Modal.Header closeButton>
-          <Modal.Title>Log Out</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>Are you sure you want to log out?</Modal.Body>
-        <Modal.Footer>
-          <Button
-            variant="secondary"
-            onClick={() => setShowLogoutConfirmation(false)}
-          >
-            No
-          </Button>
-          <Button variant="danger" onClick={handleLogout}>
-            Yes
-          </Button>
-        </Modal.Footer>
-      </Modal>
+            <div style={styles.modalBody}>
+              <input
+                type="file"
+                ref={fileInputRef}
+                accept="image/*"
+                onChange={onFileChange}
+                style={styles.input}
+              />
+
+              {selectedFile && (
+                <div style={styles.previewWrap}>
+                  <img
+                    src={URL.createObjectURL(selectedFile)}
+                    alt="Preview"
+                    style={styles.previewImg}
+                  />
+                </div>
+              )}
+            </div>
+
+            <div style={styles.modalFooter}>
+              {selectedFile && (
+                <button
+                  type="button"
+                  style={styles.secondaryBtn}
+                  onClick={removeSelectedImage}
+                >
+                  Remove Selection
+                </button>
+              )}
+              <button
+                type="button"
+                style={styles.secondaryBtn}
+                onClick={() => setShowUploadModal(false)}
+              >
+                Close
+              </button>
+              <button
+                type="button"
+                style={styles.darkBtn}
+                onClick={async () => {
+                  const uploadedUrl = await uploadProfileImageToS3();
+                  if (uploadedUrl) {
+                    setShowUploadModal(false);
+                  }
+                }}
+                disabled={!selectedFile || uploading}
+              >
+                {uploading ? "Uploading..." : "Upload"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showLogoutConfirmation && (
+        <div style={styles.modalOverlay}>
+          <div style={{ ...styles.modalCard, maxWidth: 420 }}>
+            <div style={styles.modalHeader}>
+              <h3 style={styles.modalTitle}>Log Out</h3>
+              <button
+                type="button"
+                style={styles.closeBtn}
+                onClick={() => setShowLogoutConfirmation(false)}
+              >
+                ×
+              </button>
+            </div>
+
+            <div style={styles.modalBody}>
+              Are you sure you want to log out?
+            </div>
+
+            <div style={styles.modalFooter}>
+              <button
+                type="button"
+                style={styles.secondaryBtn}
+                onClick={() => setShowLogoutConfirmation(false)}
+              >
+                No
+              </button>
+              <button
+                type="button"
+                style={styles.dangerBtn}
+                onClick={handleLogout}
+              >
+                Yes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
