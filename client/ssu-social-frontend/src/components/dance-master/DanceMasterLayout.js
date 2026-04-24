@@ -4,9 +4,9 @@ import DanceMasterNavbar from "../DanceMasterNavbar";
 
 export default function DanceMasterLayout() {
   return (
-    <div>
+    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
       <DanceMasterNavbar />
-      <div style={{ maxWidth: 1440, margin: "0 auto", padding: "0 24px" }}>
+      <div style={{ flex: 1 }}>
         <Outlet />
       </div>
     </div>
