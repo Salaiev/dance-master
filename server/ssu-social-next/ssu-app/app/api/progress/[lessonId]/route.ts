@@ -2,17 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { corsHeaders } from "@/utilities/cors";
 import sql from "@/utilities/db";
 
-type Params = {
-  params: {
-    lessonId: string;
-  };
-};
-
 // GET /api/progress/[lessonId]?user_id=<uuid>
-export async function GET(req: NextRequest, { params }: Params) {
+export async function GET(
+  req: NextRequest,
+  { params }: { params: Promise<{ lessonId: string }> }
+) {
   try {
+    const { lessonId } = await params;
     const userId = req.nextUrl.searchParams.get("user_id");
-    const lessonId = params.lessonId;
 
     if (!userId) {
       return NextResponse.json(

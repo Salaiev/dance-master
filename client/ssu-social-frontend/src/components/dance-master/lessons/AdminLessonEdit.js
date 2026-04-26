@@ -11,11 +11,25 @@ function pickLesson(payload) {
 }
 
 // Convert description string → steps array
-// Each step is stored as "Title||Description" separated by newline
 function descriptionToSteps(description) {
   if (!description) return [{ title: "", description: "" }];
+
+  try {
+    const parsed = JSON.parse(description);
+
+    if (Array.isArray(parsed) && parsed.length > 0) {
+      return parsed.map((s) => ({
+        title: s.title || "",
+        description: s.description || "",
+      }));
+    }
+  } catch (e) {
+    // Legacy format fallback below
+  }
+
   const lines = description.split("\n").map((l) => l.trim()).filter(Boolean);
   if (lines.length === 0) return [{ title: "", description: "" }];
+
   return lines.map((line) => {
     const sepIdx = line.indexOf("||");
     if (sepIdx !== -1) {
@@ -29,12 +43,16 @@ function descriptionToSteps(description) {
   });
 }
 
-// Convert steps array → newline-separated string for storage
+// Convert steps array → JSON string for storage
 function stepsToDescription(steps) {
-  return steps
-    .filter((s) => s.title.trim() || s.description.trim())
-    .map((s) => `${s.title.trim()}||${s.description.trim()}`)
-    .join("\n");
+  return JSON.stringify(
+    steps
+      .filter((s) => s.title.trim() || s.description.trim())
+      .map((s) => ({
+        title: s.title.trim(),
+        description: s.description.trim(),
+      }))
+  );
 }
 
 export default function AdminLessonEdit() {
@@ -154,8 +172,10 @@ export default function AdminLessonEdit() {
     if (!form.style) fe.style = "Style is required";
     if (!form.difficulty) fe.difficulty = "Difficulty is required";
 
-    const filledSteps = steps.filter((s) => s.title.trim());
-    if (filledSteps.length === 0) fe.steps = "At least one step with a title is required";
+    const filledSteps = steps.filter(
+      (s) => s.title.trim() || s.description.trim()
+    );
+    if (filledSteps.length === 0) fe.steps = "At least one step is required";
 
     return fe;
   }
@@ -342,7 +362,7 @@ export default function AdminLessonEdit() {
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
               <div style={label}>Instructions (step-by-step)</div>
               <span style={{ fontSize: 12, color: "#6b7280" }}>
-                {steps.filter((s) => s.title.trim()).length} step{steps.filter((s) => s.title.trim()).length !== 1 ? "s" : ""}
+                {steps.filter((s) => s.title.trim() || s.description.trim()).length} step{steps.filter((s) => s.title.trim() || s.description.trim()).length !== 1 ? "s" : ""}
               </span>
             </div>
 
