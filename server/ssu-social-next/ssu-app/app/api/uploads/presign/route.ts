@@ -37,15 +37,10 @@ export async function POST(req: NextRequest) {
           { status: 400 }
         );
       }
+
       key = `profiles/${userId}/${timestamp}-${safeName}`;
     } else if (folder === "lessons") {
-      if (!lessonId) {
-        return NextResponse.json(
-          { error: "lessonId is required for lesson uploads." },
-          { status: 400 }
-        );
-      }
-      key = `lessons/${lessonId}/${timestamp}-${safeName}`;
+      key = `lessons/${lessonId || userId || "new"}/${timestamp}-${safeName}`;
     } else {
       key = `misc/${timestamp}-${safeName}`;
     }

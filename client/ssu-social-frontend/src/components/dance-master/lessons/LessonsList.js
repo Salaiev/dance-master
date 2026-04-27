@@ -472,7 +472,11 @@ const page = {
                   onClick={() => navigate(`/dance-master/lessons/${l.lesson_id}`)}
                   title="Open lesson"
                 >
-                  <img src={getLessonImage(l.style)} alt={l.title} style={img} />
+                  <img
+                    src={l.thumbnail_url || l.image_url || getLessonImage(l.style)}
+                    alt={l.title}
+                    style={img}
+                  />
 
                   <div style={cardBody}>
                     <div style={cardTitle}>{l.title}</div>

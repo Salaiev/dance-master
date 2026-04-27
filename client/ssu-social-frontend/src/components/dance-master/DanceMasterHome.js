@@ -502,15 +502,7 @@ export default function DanceMasterHome() {
                           {x.difficulty}
                         </span>
                       </div>
-                      {x.description && (
-                        <div style={{
-                          marginTop: 4, fontSize: 12, color: MUTED,
-                          whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
-                          maxWidth: "95%",
-                        }}>
-                          {x.description}
-                        </div>
-                      )}
+                      
                     </div>
                     <div style={{ color: PURPLE, fontSize: 18, flexShrink: 0 }}>›</div>
                   </div>

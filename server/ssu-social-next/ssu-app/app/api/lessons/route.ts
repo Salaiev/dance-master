@@ -16,7 +16,6 @@ async function requireAdmin(req: Request) {
     return { ok: false as const, status: 401, error: "Missing Authorization token" };
   }
 
-  // ✅ Use your project’s access-token secret (matches your .env)
   const secret = process.env.ACCESS_TOKEN_SECRET;
   if (!secret) {
     return { ok: false as const, status: 500, error: "ACCESS_TOKEN_SECRET not configured" };
@@ -27,10 +26,6 @@ async function requireAdmin(req: Request) {
   try {
     const { payload } = await jwtVerify(token, new TextEncoder().encode(secret));
 
-    // ✅ TEMP DEBUG (remove later)
-    // console.log("LESSONS requireAdmin payload:", payload);
-
-    // ✅ Support many common payload shapes
     const p: any = payload;
     userId =
       p.user_id ||
@@ -50,8 +45,6 @@ async function requireAdmin(req: Request) {
     return { ok: false as const, status: 401, error: "Token missing user id" };
   }
 
-  // ✅ NOTE:
-  // If your users table uses "id" instead of "user_id", change WHERE accordingly.
   const rows = await sql`
     SELECT role
     FROM ssu_users
@@ -81,28 +74,28 @@ export async function GET(req: Request) {
 
     if (style && difficulty) {
       rows = await sql`
-        SELECT lesson_id, title, style, difficulty, duration_sec, video_url, description, created_at, updated_at
+        SELECT lesson_id, title, style, difficulty, duration_sec, video_url, description, thumbnail_url, created_at, updated_at
         FROM dm_lessons
         WHERE style = ${style} AND difficulty = ${difficulty}
         ORDER BY created_at DESC
       `;
     } else if (style) {
       rows = await sql`
-        SELECT lesson_id, title, style, difficulty, duration_sec, video_url, description, created_at, updated_at
+        SELECT lesson_id, title, style, difficulty, duration_sec, video_url, description, thumbnail_url, created_at, updated_at
         FROM dm_lessons
         WHERE style = ${style}
         ORDER BY created_at DESC
       `;
     } else if (difficulty) {
       rows = await sql`
-        SELECT lesson_id, title, style, difficulty, duration_sec, video_url, description, created_at, updated_at
+        SELECT lesson_id, title, style, difficulty, duration_sec, video_url, description, thumbnail_url, created_at, updated_at
         FROM dm_lessons
         WHERE difficulty = ${difficulty}
         ORDER BY created_at DESC
       `;
     } else {
       rows = await sql`
-        SELECT lesson_id, title, style, difficulty, duration_sec, video_url, description, created_at, updated_at
+        SELECT lesson_id, title, style, difficulty, duration_sec, video_url, description, thumbnail_url, created_at, updated_at
         FROM dm_lessons
         ORDER BY created_at DESC
       `;
@@ -129,13 +122,20 @@ export async function POST(req: Request) {
 
     const title = (body?.title ?? "").trim();
     const style = (body?.style ?? "").trim();
-    const difficulty = (body?.difficulty ?? "").trim().toUpperCase(); // BEGINNER/INTERMEDIATE/ADVANCED
+    const difficulty = (body?.difficulty ?? "").trim().toUpperCase();
+
     const duration_sec = Number.isFinite(Number(body?.duration_sec))
       ? Number(body.duration_sec)
       : 0;
 
     const video_url = body?.video_url ? String(body.video_url).trim() : null;
     const description = body?.description ? String(body.description).trim() : null;
+
+    const thumbnail_url = body?.thumbnail_url
+      ? String(body.thumbnail_url).trim()
+      : body?.image_url
+        ? String(body.image_url).trim()
+        : null;
 
     if (!title || !style || !difficulty) {
       return NextResponse.json(
@@ -152,9 +152,25 @@ export async function POST(req: Request) {
     }
 
     const inserted = await sql`
-      INSERT INTO dm_lessons (title, style, difficulty, duration_sec, video_url, description)
-      VALUES (${title}, ${style}, ${difficulty}::dm_difficulty, ${duration_sec}, ${video_url}, ${description})
-      RETURNING lesson_id, title, style, difficulty, duration_sec, video_url, description, created_at, updated_at
+      INSERT INTO dm_lessons (
+        title,
+        style,
+        difficulty,
+        duration_sec,
+        video_url,
+        description,
+        thumbnail_url
+      )
+      VALUES (
+        ${title},
+        ${style},
+        ${difficulty}::dm_difficulty,
+        ${duration_sec},
+        ${video_url},
+        ${description},
+        ${thumbnail_url}
+      )
+      RETURNING lesson_id, title, style, difficulty, duration_sec, video_url, description, thumbnail_url, created_at, updated_at
     `;
 
     return NextResponse.json({ item: inserted[0] }, { status: 201 });

@@ -52,15 +52,41 @@ function timeAgo(isoString) {
 
 function parseSteps(description) {
   if (!description) return [];
+
+  try {
+    const parsed = JSON.parse(description);
+
+    if (Array.isArray(parsed)) {
+      return parsed
+        .filter((s) => s.title || s.description)
+        .map((s) => ({
+          title: s.title || "Step",
+          substeps: s.description ? [s.description] : [],
+        }));
+    }
+  } catch {
+    // old format fallback
+  }
+
   const lines = description.split("\n").map((l) => l.trim()).filter(Boolean);
+
   return lines.map((line) => {
     const sepIdx = line.indexOf("||");
+
     if (sepIdx !== -1) {
       const title = line.slice(0, sepIdx).trim();
       const desc = line.slice(sepIdx + 2).trim();
-      return { title, substeps: desc ? [desc] : [] };
+
+      return {
+        title,
+        substeps: desc ? [desc] : [],
+      };
     }
-    return { title: line, substeps: [] };
+
+    return {
+      title: line,
+      substeps: [],
+    };
   });
 }
 
