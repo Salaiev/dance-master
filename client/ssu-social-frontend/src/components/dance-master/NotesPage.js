@@ -180,7 +180,14 @@ export default function NotesPage() {
       className="dm-notes"
       style={{
         minHeight: "100vh",
-        background: BG,
+        backgroundImage: `
+          linear-gradient(rgba(255,255,255,0.8), rgba(255,255,255,0.8)),
+          url('/dance2.jpg')
+        `,
+        backgroundSize: "70%",
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat",
+        backgroundColor: BG,
         fontFamily: FONT_BODY,
         padding: "32px 24px 60px",
       }}

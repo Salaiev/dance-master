@@ -585,8 +585,8 @@ export default function LessonView() {
   const [lessonCompleted, setLessonCompleted] = useState(false);
   const [completingLesson, setCompletingLesson] = useState(false);
 
-  const startTimeRef = useRef(Date.now());
-  const hasSavedRef = useRef(false);
+  const lastProgressSaveAtRef = useRef(Date.now());
+  const isSavingProgressRef = useRef(false);
   const parsedSteps = useMemo(() => parseSteps(lesson?.description), [lesson]);
 
   const loadProgress = useCallback(async () => {
@@ -621,14 +621,20 @@ export default function LessonView() {
 
   const saveProgress = useCallback(
     async (videoPos, isVideoComplete) => {
-      if (!CURRENT_USER_ID || !lessonId || hasSavedRef.current) return;
+      if (!CURRENT_USER_ID || !lessonId || isSavingProgressRef.current) return;
 
-      const elapsedSec = Math.round((Date.now() - startTimeRef.current) / 1000);
+      const now = Date.now();
+      const delta = Math.floor((now - lastProgressSaveAtRef.current) / 1000);
+
+      if (delta <= 0 && !isVideoComplete) return;
+
       const allStepsDone =
         parsedSteps.length > 0 &&
         completedSteps.filter(Boolean).length === parsedSteps.length;
 
       try {
+        isSavingProgressRef.current = true;
+
         await fetch(`${BASE}/progress/update`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -636,22 +642,30 @@ export default function LessonView() {
             user_id: CURRENT_USER_ID,
             lesson_id: lessonId,
             last_position_sec: Math.floor(videoPos || 0),
-            time_spent_sec: elapsedSec,
+            time_spent_sec: Math.max(0, delta),
             video_completed: isVideoComplete || videoCompleted,
             instructions_completed: allStepsDone,
           }),
         });
-        hasSavedRef.current = true;
-        startTimeRef.current = Date.now();
-        setTimeout(() => {
-          hasSavedRef.current = false;
-        }, 1000);
+
+        lastProgressSaveAtRef.current = now;
       } catch (e) {
         console.error("Failed to save progress:", e);
+      } finally {
+        isSavingProgressRef.current = false;
       }
     },
     [CURRENT_USER_ID, lessonId, parsedSteps, completedSteps, videoCompleted]
   );
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const currentTime = window.__ytGetCurrentTime?.() || 0;
+      saveProgress(currentTime, false);
+    }, 15000);
+
+    return () => clearInterval(interval);
+  }, [saveProgress]);
 
   const tryAutoComplete = useCallback(
     async (stepsArr, vidDone) => {
@@ -747,7 +761,7 @@ export default function LessonView() {
     if (!lessonId) return;
     loadAll();
     loadProgress();
-    startTimeRef.current = Date.now();
+    lastProgressSaveAtRef.current = Date.now();
   }, [lessonId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {

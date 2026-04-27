@@ -42,18 +42,18 @@ export async function GET(req: NextRequest) {
 
     const todayStats = await sql`
       SELECT
-        COALESCE(SUM(duration_sec), 0)::int AS today_time_spent_sec
-      FROM dm_lesson_sessions
+        COALESCE(SUM(time_spent_sec), 0)::int AS today_time_spent_sec
+      FROM dm_progress
       WHERE user_id = ${userId}
-        AND started_at::date = CURRENT_DATE
+        AND last_accessed_at::date = CURRENT_DATE
     `;
 
     const weekStats = await sql`
       SELECT
-        COALESCE(SUM(duration_sec), 0)::int AS week_time_spent_sec
-      FROM dm_lesson_sessions
+        COALESCE(SUM(time_spent_sec), 0)::int AS week_time_spent_sec
+      FROM dm_progress
       WHERE user_id = ${userId}
-        AND started_at >= date_trunc('week', CURRENT_DATE)
+        AND last_accessed_at >= date_trunc('week', CURRENT_DATE)
     `;
 
     const recentCompleted = await sql`
@@ -89,12 +89,22 @@ export async function GET(req: NextRequest) {
           completed_lessons: row.completed_lessons ?? 0,
           in_progress_lessons: row.in_progress_lessons ?? 0,
           not_started_lessons: row.not_started_lessons ?? 0,
+
           total_time_spent_sec: row.total_time_spent_sec ?? 0,
-          total_time_spent_min: Math.ceil((row.total_time_spent_sec ?? 0) / 60),
+          total_time_spent_min: Math.ceil(
+            (row.total_time_spent_sec ?? 0) / 60
+          ),
+
           today_time_spent_sec: todayStats[0]?.today_time_spent_sec ?? 0,
-          today_time_spent_min: Math.ceil((todayStats[0]?.today_time_spent_sec ?? 0) / 60),
+          today_time_spent_min: Math.ceil(
+            (todayStats[0]?.today_time_spent_sec ?? 0) / 60
+          ),
+
           week_time_spent_sec: weekStats[0]?.week_time_spent_sec ?? 0,
-          week_time_spent_min: Math.ceil((weekStats[0]?.week_time_spent_sec ?? 0) / 60),
+          week_time_spent_min: Math.ceil(
+            (weekStats[0]?.week_time_spent_sec ?? 0) / 60
+          ),
+
           last_completed_at: row.last_completed_at ?? null,
         },
         recent_completed: recentCompleted,

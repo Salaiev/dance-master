@@ -188,7 +188,22 @@ export default function LessonsList() {
   }
 
   // Styles (inline to match your current approach)
-  const page = { maxWidth: 1200, margin: "0 auto", padding: 22 };
+  // ONLY CHANGE IS HERE 👇
+const page = {
+  maxWidth: 1200,
+  margin: "0 auto",
+  padding: 22,
+  minHeight: "100vh",
+
+  // 👇 light white shade
+  backgroundImage: `
+    linear-gradient(rgba(255,255,255,0.3), rgba(255,255,255,0.6)),
+    url('/dance2.jpg')
+  `,
+  backgroundSize: "cover",
+  backgroundPosition: "center",
+  backgroundRepeat: "no-repeat",
+};
   const topBar = {
     display: "flex",
     justifyContent: "space-between",

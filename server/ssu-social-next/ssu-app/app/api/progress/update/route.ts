@@ -2,6 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { corsHeaders } from "@/utilities/cors";
 import sql from "@/utilities/db";
 
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 204,
+    headers: corsHeaders,
+  });
+}
+
 // POST /api/progress/update
 export async function POST(req: NextRequest) {
   try {
@@ -22,6 +29,11 @@ export async function POST(req: NextRequest) {
         { status: 400, headers: corsHeaders }
       );
     }
+
+    const safeLastPosition = Math.max(0, Number(last_position_sec) || 0);
+    const safeTimeSpent = Math.max(0, Number(time_spent_sec) || 0);
+    const safeVideoCompleted = Boolean(video_completed);
+    const safeInstructionsCompleted = Boolean(instructions_completed);
 
     const user = await sql`
       SELECT user_id
@@ -52,15 +64,7 @@ export async function POST(req: NextRequest) {
     }
 
     const existing = await sql`
-      SELECT
-        user_id,
-        lesson_id,
-        last_position_sec,
-        time_spent_sec,
-        video_completed,
-        instructions_completed,
-        is_completed,
-        status
+      SELECT *
       FROM dm_progress
       WHERE user_id = ${user_id}
         AND lesson_id = ${lesson_id}
@@ -70,32 +74,42 @@ export async function POST(req: NextRequest) {
     let result;
 
     if (!existing.length) {
-      const status =
-        video_completed || instructions_completed || time_spent_sec > 0 || last_position_sec > 0
-          ? "IN_PROGRESS"
-          : "NOT_STARTED";
+      const isCompleted = safeVideoCompleted && safeInstructionsCompleted;
+
+      const status = isCompleted
+        ? "COMPLETED"
+        : safeVideoCompleted ||
+          safeInstructionsCompleted ||
+          safeTimeSpent > 0 ||
+          safeLastPosition > 0
+        ? "IN_PROGRESS"
+        : "NOT_STARTED";
 
       result = await sql`
         INSERT INTO dm_progress (
           user_id,
           lesson_id,
           last_position_sec,
-          is_completed,
-          status,
           time_spent_sec,
           video_completed,
           instructions_completed,
-          last_accessed_at
+          is_completed,
+          status,
+          completed_at,
+          last_accessed_at,
+          updated_at
         )
         VALUES (
           ${user_id},
           ${lesson_id},
-          ${Math.max(0, Number(last_position_sec) || 0)},
-          FALSE,
+          ${safeLastPosition},
+          ${safeTimeSpent},
+          ${safeVideoCompleted},
+          ${safeInstructionsCompleted},
+          ${isCompleted},
           ${status},
-          ${Math.max(0, Number(time_spent_sec) || 0)},
-          ${Boolean(video_completed)},
-          ${Boolean(instructions_completed)},
+          CASE WHEN ${isCompleted} THEN NOW() ELSE NULL END,
+          NOW(),
           NOW()
         )
         RETURNING *
@@ -105,18 +119,17 @@ export async function POST(req: NextRequest) {
 
       const mergedLastPosition = Math.max(
         Number(old.last_position_sec) || 0,
-        Number(last_position_sec) || 0
+        safeLastPosition
       );
 
       const mergedTimeSpent =
-        Math.max(0, Number(old.time_spent_sec) || 0) +
-        Math.max(0, Number(time_spent_sec) || 0);
+        Math.max(0, Number(old.time_spent_sec) || 0) + safeTimeSpent;
 
       const mergedVideoCompleted =
-        Boolean(old.video_completed) || Boolean(video_completed);
+        Boolean(old.video_completed) || safeVideoCompleted;
 
       const mergedInstructionsCompleted =
-        Boolean(old.instructions_completed) || Boolean(instructions_completed);
+        Boolean(old.instructions_completed) || safeInstructionsCompleted;
 
       const nextIsCompleted =
         Boolean(old.is_completed) ||
@@ -144,7 +157,8 @@ export async function POST(req: NextRequest) {
             WHEN ${nextIsCompleted} AND completed_at IS NULL THEN NOW()
             ELSE completed_at
           END,
-          last_accessed_at = NOW()
+          last_accessed_at = NOW(),
+          updated_at = NOW()
         WHERE user_id = ${user_id}
           AND lesson_id = ${lesson_id}
         RETURNING *
